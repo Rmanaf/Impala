@@ -1,0 +1,113 @@
+def vmajor = 3
+def vminor = 0
+def vpatch = 0
+def vCode = vmajor * 10000 + vminor * 100 + vpatch
+def vName = "${vmajor}.${vminor}.${vpatch}"
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.1.2'
+        classpath 'org.ajoberstar:gradle-git:1.1.0'
+        // classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
+    }
+}
+
+
+apply plugin: 'com.android.library'
+// apply plugin: "com.github.hierynomus.license"
+
+import org.ajoberstar.grgit.*
+
+ext.repo = Grgit.open(project.file('.'))
+
+android {
+
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
+
+    lintOptions {
+        abortOnError false
+    }
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 27
+        versionCode vCode
+        versionName vName
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+def distPath = "dist/${android.defaultConfig.versionName}/"
+def jarFileName = "impala-v${vName}-${ext.repo.branch.current.name}.jar"
+def aarFileName = "impala-v${vName}-${ext.repo.branch.current.name}.aar"
+def buildJarPath = "build/intermediates/intermediate-jars/release/"
+def buildAarPath = "build/outputs/aar/"
+task updateREADME(type: Copy) {
+
+    delete 'temp/output/README.md'
+
+    from 'temp/'
+    into 'temp/output'
+    include 'README-temp.md'
+    rename('README-temp.md', 'README.md')
+
+    doLast {
+        ant.replaceregexp(match: '<v>+(.*?)+<\\/v>', replace: vName, flags: 'g', byline: true) {
+            fileset(dir: 'temp/output/', includes: 'README.md')
+        }
+    }
+}
+task createDist(type: Copy) {
+
+    // clean old files
+    delete "${distPath}${jarFileName}"
+    delete "${distPath}${aarFileName}"
+
+    // move new files
+
+    from(buildJarPath)
+    into(distPath)
+    include('full.jar')
+    rename('full.jar', jarFileName)
+
+    from(buildAarPath)
+    into(distPath)
+    include('Impala-release.aar')
+    rename('Impala-release.aar', aarFileName)
+
+}
+createDist.dependsOn(build)
+
+repositories {
+    google()
+    jcenter()
+    mavenCentral()
+}
+dependencies {
+}
+
+/*
+license {
+    include "LICENSE"
+    header = file('temp/LICENSE.txt')
+    ext.year = "2018"
+    ext.name = 'Arman Afzal'
+    ext.email = 'arman.afzal@gmail.com'
+}
+*/
