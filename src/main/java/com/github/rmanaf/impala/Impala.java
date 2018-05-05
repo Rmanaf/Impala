@@ -304,7 +304,7 @@ public class Impala {
         }
 
         // search for multiple methods
-        String[] nominatedPages = startup.split("|");
+        String[] nominatedPages = startup.split("\\|");
 
         for (String page : nominatedPages) {
             try {
