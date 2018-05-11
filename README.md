@@ -1,5 +1,5 @@
 # Impala
-> Current Version [3.0.0](https://github.com/rmanaf/impala/tree/master/dist/3.0.0)
+> Current Version [3.1.0](https://github.com/rmanaf/impala/tree/master/dist/3.1.0)
 
 - See [Change Log](https://github.com/rmanaf/impala/blob/master/CHANGELOG.md)
 

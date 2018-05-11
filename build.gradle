@@ -1,5 +1,5 @@
 def vmajor = 3
-def vminor = 0
+def vminor = 1
 def vpatch = 0
 def vCode = vmajor * 10000 + vminor * 100 + vpatch
 def vName = "${vmajor}.${vminor}.${vpatch}"

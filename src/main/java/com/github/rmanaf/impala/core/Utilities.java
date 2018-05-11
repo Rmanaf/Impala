@@ -21,6 +21,7 @@ import com.github.rmanaf.impala.forms.Bind;
 import com.github.rmanaf.impala.forms.Component;
 import com.github.rmanaf.impala.forms.Form;
 import com.github.rmanaf.impala.forms.Multibind;
+import com.github.rmanaf.impala.generic.Alias;
 import com.github.rmanaf.impala.generic.PropertyInfo;
 import com.github.rmanaf.impala.generic.Tuple;
 
@@ -250,5 +251,45 @@ public class Utilities {
         return new BoundData(comp , bind.event() , converter , bind.autoUpdate());
 
     }
+
+    public static Method findMethodByName(Class<?> clazz , String name ,  boolean matchCase){
+
+        for(Method m : clazz.getDeclaredMethods()){
+
+            if(methodHasName(m , name , matchCase)){
+
+                return m;
+
+            }
+
+        }
+
+        return null;
+
+    }
+
+    public static boolean methodHasName(Method method, String name, boolean matchCase) {
+
+        String mname , pname;
+
+        pname = matchCase ? name : name.toLowerCase();
+
+        if(method.isAnnotationPresent(Alias.class)) {
+
+            mname = method.getAnnotation(Alias.class).value();
+
+            if(!matchCase)
+                mname = mname.toLowerCase();
+
+        }else {
+
+            mname = matchCase ? method.getName() : method.getName().toLowerCase();
+
+        }
+
+        return mname.equals(pname);
+
+    }
+
     
 }

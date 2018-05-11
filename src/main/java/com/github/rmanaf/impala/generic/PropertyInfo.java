@@ -33,6 +33,15 @@ public class PropertyInfo {
 
     }
 
+    public String getDisplayName(){
+
+        if(field.isAnnotationPresent(DisplayName.class))
+            return field.getAnnotation(DisplayName.class).value();
+
+        return getName();
+
+    }
+
     public String getName() {
 
         return field.getName();

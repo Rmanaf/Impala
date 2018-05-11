@@ -16,7 +16,7 @@
 package com.github.rmanaf.impala.core;
 
 import com.github.rmanaf.impala.forms.View;
-import com.github.rmanaf.impala.validation.Validator;
+import com.github.rmanaf.impala.extensions.validation.Validator;
 
 public class ModelOptions {
 

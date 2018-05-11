@@ -24,6 +24,7 @@ import android.util.Log;
 import com.github.rmanaf.impala.core.ControllerOptions;
 import com.github.rmanaf.impala.core.IController;
 import com.github.rmanaf.impala.core.IDependency;
+import com.github.rmanaf.impala.core.Utilities;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -74,9 +75,6 @@ public class Impala {
                 continue;
 
 
-
-            // check if dependency is type of service
-
             if( isService(a) ){
 
                 // TODO: register Service
@@ -84,7 +82,6 @@ public class Impala {
                 continue;
 
             }
-
 
 
             if( isIntentService(a) ){
@@ -96,19 +93,37 @@ public class Impala {
             }
 
 
-
             if(Modifier.isStatic(a.getModifiers())){
 
                 // TODO: handle static dependency class
-                // for now just ignore them
 
                 continue;
 
             }
 
+            if(isActivity(a)){
 
+                if(mActivity == null) {
 
-            // register dependency
+                    Log.e(getSimpleName() , "Impala is not initialized");
+
+                    return;
+
+                }
+
+                if(!a.equals(mActivity.getClass())){
+
+                    Log.e(getSimpleName() , "Activity type is not defined.");
+
+                    continue;
+
+                }
+
+                register( a.getClass().getName(), DependencyType.Activity, (IDependency) mActivity );
+
+                continue;
+
+            }
 
             try {
 
@@ -203,8 +218,14 @@ public class Impala {
     }
 
     public static void init(Activity activity , Integer wrapper){
+
+        if(activity == null)
+            throw new NullPointerException("Value of activity cannot be null");
+
         mActivity = activity;
         mWrapper = wrapper;
+
+
     }
 
     public static void run(Class<? extends IController> controller ) {
@@ -245,6 +266,12 @@ public class Impala {
     private static boolean isService(Class<? extends IDependency> obj){
 
         return obj.getClass().equals(Service.class);
+
+    }
+
+    private static  boolean isActivity(Class<? extends IDependency> obj){
+
+        return obj.getClass().equals(Activity.class);
 
     }
 
@@ -294,28 +321,34 @@ public class Impala {
         // search for single method
 
         if (!startup.contains("|")) {
-            try {
-                Method m = inst.getClass().getMethod(startup);
+
+            Method m = Utilities.findMethodByName(inst.getClass() , startup , false);
+
+            if(m != null) {
                 m.invoke(inst);
-            } catch (Exception e) {
-                e.printStackTrace();
+                return;
             }
-            return;
+
         }
 
         // search for multiple methods
         String[] nominatedPages = startup.split("\\|");
 
         for (String page : nominatedPages) {
-            try {
-                Method m = inst.getClass().getMethod(page);
-                m.invoke(inst);
-                // leave if found
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
+            Method m = Utilities.findMethodByName(inst.getClass() , page , false);
+
+            if(m == null)
+                continue;
+
+            m.invoke(inst);
+
+            return;
+
         }
+
+        Log.e(getSimpleName() ,
+                String.format("Method \"%s\" is not defined in class \"%s\"" , startup , inst.getClass()));
 
     }
 
@@ -364,7 +397,7 @@ enum ServiceState{
 }
 
 enum DependencyType {
-    Service , IntentService, Object
+    Service , IntentService, Object  , Activity
 }
 
 class Dependency implements IDependency {
