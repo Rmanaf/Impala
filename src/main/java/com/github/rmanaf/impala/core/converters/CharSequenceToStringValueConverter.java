@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.rmanaf.impala.core.converters;
+package com.github.rmanaf.impala.core.converters;
 
 import com.github.rmanaf.impala.core.ValueConverter;
 

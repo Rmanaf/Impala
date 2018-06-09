@@ -24,14 +24,15 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 
+import com.github.rmanaf.impala.extensions.modifiers.ModelModifier;
+import com.github.rmanaf.impala.extensions.validation.ValidationResult;
+import com.github.rmanaf.impala.extensions.validation.Validator;
 import com.github.rmanaf.impala.forms.Bind;
 import com.github.rmanaf.impala.forms.Form;
 import com.github.rmanaf.impala.forms.IFormOperation;
 import com.github.rmanaf.impala.forms.ItemView;
 import com.github.rmanaf.impala.generic.PropertyInfo;
 import com.github.rmanaf.impala.generic.Tuple;
-import com.github.rmanaf.impala.validation.ValidationResult;
-import com.github.rmanaf.impala.validation.Validator;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -44,7 +45,7 @@ import java.util.List;
 
 /**
  *  TODO: add plugin layer
- *  for now just looking for modifiers and validators by their suffix's
+ *  for now just looking for modifiers and validators using their suffix's
  **/
 public class ModelRenderer extends Fragment {
 
@@ -497,80 +498,6 @@ public class ModelRenderer extends Fragment {
 
     }
 
-    public ModelRenderer modify(Model model, boolean restore) throws IllegalAccessException {
-
-        List<Tuple<PropertyInfo, ModelModifier>> modifiers = new ArrayList<>();
-
-        for (PropertyInfo prop : model.getProperties()) {
-
-            // check if field is collection
-
-            if (prop.isCollection()) {
-
-                Object value = prop.getValue();
-
-                if (value == null) {
-
-                    continue;
-
-                }
-
-                Iterator collection = prop.isArray() ? Arrays.asList(prop.getValue()).iterator() :
-                        Iterable.class.cast(value).iterator();
-
-                while (collection.hasNext()) {
-
-                    Object item = collection.next();
-
-                    // apply item modifiers
-
-                    if (item instanceof Model) {
-
-                        modify((Model) item, restore);
-
-                    }
-
-                }
-
-            }
-
-            // for non-collections
-
-            Annotation[] annotations = prop.getDeclaredAnnotations();
-
-            for (Annotation a : annotations) {
-
-                String name = a.annotationType().getName().concat(MODIFIERS_SUFFIX);
-
-                try {
-
-                    Class<?> clazz = Class.forName(name);
-
-                    ModelModifier object = (ModelModifier) clazz.getConstructor(a.annotationType())
-                            .newInstance(a);
-
-                    modifiers.add(new Tuple(prop, object));
-
-                } catch (Exception e) {
-
-                    continue;
-
-                }
-
-            }
-
-        }
-
-        for (Tuple<PropertyInfo, ModelModifier> m : modifiers) {
-
-            m.Item2.invoke(m.Item1, restore);
-
-        }
-
-        return this;
-
-    }
-
     private ArrayAdapter<Model> createCollectionAdapter(AdapterView view, PropertyInfo property)
             throws NoSuchFieldException, IllegalAccessException, NullPointerException {
 
@@ -741,6 +668,84 @@ public class ModelRenderer extends Fragment {
         }
 
         return method;
+
+    }
+
+    /**
+     *  plugins
+     */
+
+    public ModelRenderer modify(Model model, boolean restore) throws IllegalAccessException {
+
+        List<Tuple<PropertyInfo, ModelModifier>> modifiers = new ArrayList<>();
+
+        for (PropertyInfo prop : model.getProperties()) {
+
+            // check if field is collection
+
+            if (prop.isCollection()) {
+
+                Object value = prop.getValue();
+
+                if (value == null) {
+
+                    continue;
+
+                }
+
+                Iterator collection = prop.isArray() ? Arrays.asList(prop.getValue()).iterator() :
+                        Iterable.class.cast(value).iterator();
+
+                while (collection.hasNext()) {
+
+                    Object item = collection.next();
+
+                    // apply item modifiers
+
+                    if (item instanceof Model) {
+
+                        modify((Model) item, restore);
+
+                    }
+
+                }
+
+            }
+
+            // for non-collections
+
+            Annotation[] annotations = prop.getDeclaredAnnotations();
+
+            for (Annotation a : annotations) {
+
+                String name = a.annotationType().getName().concat(MODIFIERS_SUFFIX);
+
+                try {
+
+                    Class<?> clazz = Class.forName(name);
+
+                    ModelModifier object = (ModelModifier) clazz.getConstructor(a.annotationType())
+                            .newInstance(a);
+
+                    modifiers.add(new Tuple(prop, object));
+
+                } catch (Exception e) {
+
+                    continue;
+
+                }
+
+            }
+
+        }
+
+        for (Tuple<PropertyInfo, ModelModifier> m : modifiers) {
+
+            m.Item2.invoke(m.Item1, restore);
+
+        }
+
+        return this;
 
     }
 

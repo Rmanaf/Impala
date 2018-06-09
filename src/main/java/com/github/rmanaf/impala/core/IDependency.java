@@ -16,3 +16,4 @@
 package com.github.rmanaf.impala.core;
 
 public interface IDependency { }
+

@@ -15,7 +15,7 @@
  */
 package com.github.rmanaf.impala.security.crypto;
 
-import com.github.rmanaf.impala.core.ModelModifier;
+import com.github.rmanaf.impala.extensions.modifiers.ModelModifier;
 import com.github.rmanaf.impala.generic.PropertyInfo;
 import com.github.rmanaf.impala.net.Serializer;
 

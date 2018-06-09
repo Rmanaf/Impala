@@ -15,7 +15,6 @@
  */
 package com.github.rmanaf.impala.core.converters;
 
-
 import com.github.rmanaf.impala.core.ValueConverter;
 
 public class CharSequenceToIntegerValueConverter extends ValueConverter<CharSequence , Integer> {

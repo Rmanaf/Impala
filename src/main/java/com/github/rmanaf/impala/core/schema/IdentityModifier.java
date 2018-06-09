@@ -16,8 +16,8 @@
 package com.github.rmanaf.impala.core.schema;
 
 
-import com.github.rmanaf.impala.core.ModelModifier;
-import com.github.rmanaf.impala.core.ModifyOnce;
+import com.github.rmanaf.impala.extensions.modifiers.ModelModifier;
+import com.github.rmanaf.impala.extensions.modifiers.ModifyOnce;
 import com.github.rmanaf.impala.generic.PropertyInfo;
 
 import java.util.HashMap;

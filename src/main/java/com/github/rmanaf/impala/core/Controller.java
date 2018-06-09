@@ -22,6 +22,7 @@ import android.util.Log;
 
 import com.github.rmanaf.impala.Impala;
 import com.github.rmanaf.impala.forms.Submit;
+import com.github.rmanaf.impala.generic.Alias;
 import com.github.rmanaf.impala.generic.Tuple;
 
 import java.lang.reflect.Method;
@@ -33,12 +34,13 @@ public class Controller implements IController {
 
     private ModelRenderer mRenderer;
     private int[] mAnimations;
-    private List<Tuple<String , Model>> mStack;
+    private List<StackItem> mStack;
     private Activity mActivity;
     private int mPlaceholder;
     private ControllerOptions mOptions;
     private IOnModelChangedEventListener mListener;
     private String mView;
+    private Fragment mFragment;
 
 
     public IController config(Activity activity, int placeholder , ControllerOptions options){
@@ -115,53 +117,51 @@ public class Controller implements IController {
 
     public void view(String page) {
 
-        view(page , null , null , true);
+        view(page , null , null ,null, true);
 
     }
 
     public void view(String page, Fragment fragment) {
 
-        view(page , null , null , true);
+        view(page , null , null ,fragment, true);
 
     }
 
     public void view(Model model) {
 
-        view(null , model , null , true);
+        view(null , model , null , null,true);
 
     }
 
     public void view(Model model , ModelOptions options) {
 
-        view(null , model , options , true);
+        view(null , model , options , null, true);
 
     }
 
     public void view(String page , Model model) {
 
-        view(page , model , null , true);
+        view(page , model , null , null, true);
 
     }
 
     public void view(String page , Model model , boolean addToStack) {
 
-        view(page , model , null , addToStack);
+        view(page , model , null , null ,addToStack);
 
     }
 
-    public void view(String page , Model model, ModelOptions options ) {
+    public void view(String page , Model model, ModelOptions options) {
 
-        view(page , model , options , true);
+        view(page , model , options , null,true);
 
     }
 
-    public void view(String page , Model model, ModelOptions options , boolean addToStack) {
+    private void view(String page , Model model, ModelOptions options , Fragment fragment , boolean addToStack) {
 
-        if(model != null) {
-
+        if(model != null || fragment != null){
 
             FragmentTransaction ft = getActivity().getFragmentManager().beginTransaction();
-
 
             if (mAnimations != null)
                 if (mAnimations.length == 2)
@@ -174,66 +174,73 @@ public class Controller implements IController {
 
             getOptions().onBeginTransaction(ft);
 
+            if (getRenderer() != null  && addToStack) {
 
-            if (getRenderer() != null && getRenderer().getForm().getModel() != null && addToStack) {
-
-                addToStack();
+                if(getRenderer().getForm().getModel() != null)
+                    addToStack(false);
+                else if(mFragment != null)
+                    addToStack(true);
 
             }
 
-            setRenderer(new ModelRenderer())
-                    .render(model, options)
-                    .setOnModelChangedEventListener(new IOnModelChangedEventListener() {
+            if(fragment != null) {
 
-                        @Override
-                        public void onFieldChanged(BoundData details, Object oldValue) {
+                mFragment = fragment;
 
-                            if (mListener != null)
-                                mListener.onFieldChanged(details, oldValue);
+                ft.replace(getPlaceholderId(), fragment).commit();
 
-                        }
+            }
 
-                        @Override
-                        public void onSubmit(Model model) {
+            if(model != null) {
 
-                            Controller.this.onSubmit(model);
+                setRenderer(new ModelRenderer())
+                        .render(model, options)
+                        .setOnModelChangedEventListener(new IOnModelChangedEventListener() {
 
-                            if (mListener != null)
-                                mListener.onSubmit(model);
+                            @Override
+                            public void onFieldChanged(BoundData details, Object oldValue) {
 
-                        }
+                                if (mListener != null)
+                                    mListener.onFieldChanged(details, oldValue);
 
-                        @Override
-                        public void onCollectionItemSelected(Model model, Object item) {
+                            }
 
-                            if (mListener != null)
-                                mListener.onCollectionItemSelected(model, item);
+                            @Override
+                            public void onSubmit(Model model) {
 
-                        }
+                                Controller.this.onSubmit(model);
 
-                    });
+                                if (mListener != null)
+                                    mListener.onSubmit(model);
 
-            ft.replace(getPlaceholderId() , getRenderer()).commit();
+                            }
 
-            if(page != null) {
+                            @Override
+                            public void onCollectionItemSelected(Model model, Object item) {
 
+                                if (mListener != null)
+                                    mListener.onCollectionItemSelected(model, item);
+
+                            }
+
+                        });
+
+                ft.replace(getPlaceholderId(), getRenderer()).commit();
+
+            }
+
+            if(page != null)
                 mView = page;
 
-                return;
-
-            }
-
-        }
-
-        if(page == null) {
 
             return;
 
         }
 
+
         for (Method m : getClass().getDeclaredMethods()) {
 
-            if (!methodHasName(m, page, false)) {
+            if (!Utilities.methodHasName(m, page, false)) {
 
                 continue;
 
@@ -263,13 +270,15 @@ public class Controller implements IController {
 
     }
 
+
+
     public boolean popBackStack() {
 
-        Tuple<String , Model> stack = popStack();
+        StackItem stack = popStack();
 
         if (stack != null) {
 
-            view(stack.Item1 , stack.Item2, stack.Item2.getOptions() , false);
+            view(stack.page , stack.model, stack.model.getOptions() , stack.fragment , false);
 
         }
 
@@ -307,7 +316,7 @@ public class Controller implements IController {
                 String submitVal = m.getAnnotation(Submit.class).value().toLowerCase();
 
                 if ((!submitVal.equals("") && submitVal.equals(mView.toLowerCase()) ||
-                    ( submitVal.equals("") && methodHasName(m , mView , false))) &&
+                    ( submitVal.equals("") && Utilities.methodHasName(m , mView , false))) &&
                       params[0] == model.getClass()) {
 
                     m.invoke(this, model);
@@ -334,7 +343,7 @@ public class Controller implements IController {
 
     }
 
-    public List<Tuple<String , Model>> getStack() {
+    public List<StackItem> getStack() {
 
         if(mStack == null){
 
@@ -346,13 +355,13 @@ public class Controller implements IController {
 
     }
 
-    private void addToStack() {
+    private void addToStack(boolean fragment) {
 
-        getStack().add(new Tuple(mView , getRenderer().getForm().getModel()));
+        getStack().add(new StackItem(mView , getRenderer().getForm().getModel() , fragment ? mFragment : null));
 
     }
 
-    private Tuple<String , Model> popStack() {
+    private StackItem popStack() {
 
         if (getStack().size() > 0) {
 
@@ -364,11 +373,18 @@ public class Controller implements IController {
 
     }
 
-    private boolean methodHasName(Method method, String name, boolean matchCase) {
 
-        return matchCase ? method.getName().equals(name) :
-                method.getName().toLowerCase().equals(name.toLowerCase());
 
+}
+
+
+class StackItem {
+    public Model model;
+    public String page;
+    public Fragment fragment;
+    public StackItem(String page ,Model model  ,Fragment fragment){
+        this.model = model;
+        this.page = page;
+        this.fragment = fragment;
     }
-
 }
